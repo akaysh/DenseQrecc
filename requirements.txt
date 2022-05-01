@@ -1,0 +1,4 @@
+beautifulsoup4==4.9.3
+nltk==3.5
+pyserini==0.10.0.1
+warcio==1.7.4
