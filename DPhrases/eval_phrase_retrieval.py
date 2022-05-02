@@ -48,8 +48,8 @@ def embed_all_query(questions, args, query_encoder, tokenizer, batch_size=64):
 
 def evaluate(args, mips=None, query_encoder=None, tokenizer=None, q_idx=None):
     # Load dataset and encode queries
-    qids, questions, answers, _ = load_qa_pairs(args.test_path, args, q_idx)
-
+    questions, answers, contexts, answer_urls, qids = load_qa_pairs(args.test_path, args, q_idx)
+    
     if query_encoder is None:
         logger.info(f'Query encoder will be loaded from {args.load_dir}')
         device = 'cuda' if args.cuda else 'cpu'
@@ -188,21 +188,26 @@ def evaluate_results(predictions, qids, questions, answers, args, evidences, sco
     redundant_topk = redundant_topk / total
     logger.info({f'redundancy of top{args.top_k}': redundant_topk})
 
+    agg_pred = {
+        'exact_match_top1' : exact_match_top1,
+        'f1_score_top1' : f1_score_top1,
+        f'exact_match_top{args.top_k}' : exact_match_topk,
+        f'f1_score_top{args.top_k}' : f1_score_topk
+    }
+
     # Dump predictions
-    if len(args.load_dir) == 0:
-        pred_dir = os.path.join(os.environ['SAVE_DIR'], 'pred')
-    else:
-        pred_dir = os.path.join(args.load_dir, 'pred')
+    pred_dir =  'predictions'
     if not os.path.exists(pred_dir):
         os.makedirs(pred_dir)
 
-    if args.save_pred:
-        pred_path = os.path.join(
-            pred_dir, os.path.splitext(os.path.basename(args.test_path))[0] + f'_{total}_top{args.top_k}.pred'
-        )
-        logger.info(f'Saving prediction file to {pred_path}')
-        with open(pred_path, 'w') as f:
-            json.dump(pred_out, f)
+    pred_path = os.path.join(pred_dir,  f'{total}_top{args.top_k}.pred')
+    pred_path_agg = os.path.join(pred_dir,  f'{total}_top{args.top_k}_agg.pred')
+    logger.info(f'Saving prediction file to {pred_path}')
+    with open(pred_path, 'w') as f:
+        json.dump(pred_out, f)
+
+    with open(pred_path_agg, 'w') as f:
+        json.dump(agg_pred, f)
 
     # Evaluate passage retrieval
     if args.eval_psg:

@@ -87,9 +87,9 @@ def train_query_encoder(args, mips=None):
         total_accs_k = []
 
         # Load training dataset
-        q_ids, questions, answers, titles = load_qa_pairs(args.train_path, args, shuffle=True)
+        questions, answers, contexts, answer_urls, qids = load_qa_pairs(args.train_path, args, shuffle=True)
         pbar = tqdm(get_top_phrases(
-            mips, q_ids, questions, answers, titles, pretrained_encoder, tokenizer,
+            mips, qids, questions, answers, answer_urls, pretrained_encoder, tokenizer,
             args.per_gpu_train_batch_size, args)
         )
 
@@ -97,7 +97,7 @@ def train_query_encoder(args, mips=None):
             train_dataloader, _, _ = get_question_dataloader(
                 questions, tokenizer, args.max_query_length, batch_size=args.per_gpu_train_batch_size
             )
-            svs, evs, tgts, p_tgts = annotate_phrase_vecs(mips, q_ids, questions, answers, titles, outs, args)
+            svs, evs, tgts, p_tgts = annotate_phrase_vecs(mips, q_ids, questions, answers, answer_urls, outs, args)
 
             target_encoder.train()
             svs_t = torch.Tensor(svs).to(device)

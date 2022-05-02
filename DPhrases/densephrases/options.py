@@ -153,6 +153,7 @@ class Options():
         self.parser.add_argument('--agg_strat', type=str, default='opt1')
 
         # Evaluation
+        self.parser.add_argument('--ret_only', action='store_true', default=False)
         self.parser.add_argument('--dev_path', default='open-qa/nq-open/dev_preprocessed.json')
         self.parser.add_argument('--test_path', default='open-qa/nq-open/test_preprocessed.json')
         self.parser.add_argument('--candidate_path', default=None)

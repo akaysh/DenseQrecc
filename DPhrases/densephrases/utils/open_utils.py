@@ -102,29 +102,42 @@ def get_query2vec(query_encoder, tokenizer, args, batch_size=64):
 
 
 def load_qa_pairs(data_path, args, q_idx=None, draft_num_examples=100, shuffle=False):
-    q_ids = []
+    conv_ids = []
     questions = []
     answers = []
-    titles = []
-    data = json.load(open(data_path))['data']
+    contexts = []
+    answer_urls = []
+    qids = []
+    data = json.load(open(data_path))
     for data_idx, item in enumerate(data):
         if q_idx is not None:
             if data_idx != q_idx:
                 continue
-        q_id = item['id']
-        if 'origin' in item:
-            q_id = item['origin'].split('.')[0] + '-' + q_id
-        question = item['question']
+        # q_id = item['id']
+        # if 'origin' in item:
+        #     q_id = item['origin'].split('.')[0] + '-' + q_id
+        if args.ret_only:
+            question = item['Rewrite']
+        else:
+            question = item['Question']
+
         if '[START_ENT]' in question:
             question = question[max(question.index('[START_ENT]')-300, 0):question.index('[END_ENT]')+300]
-        answer = item['answers']
-        title = item.get('titles', [''])
+        answer = item['Answer']
+        context = item.get('Context', [''])
+        answer_url = item.get("Answer_URL",[''])
+        conv_id = item["Conversation_no"]
+        turn_no = item["Turn_no"]
+        conv_source = item["Conversation_source"]
+        
         if len(answer) == 0:
             continue
-        q_ids.append(q_id)
+        conv_ids.append(conv_id)
         questions.append(question)
         answers.append(answer)
-        titles.append(title)
+        contexts.append(context)
+        answer_urls.append(answer_url)
+        qids.append(str(conv_id) + "_" + str(turn_no))
     questions = [query[:-1] if query.endswith('?') else query for query in questions]
     # questions = [query.lower() for query in questions] # force lower query
 
@@ -133,17 +146,16 @@ def load_qa_pairs(data_path, args, q_idx=None, draft_num_examples=100, shuffle=F
         questions = [query.lower() for query in questions]
 
     if shuffle:
-        qa_pairs = list(zip(q_ids, questions, answers, titles))
+        qa_pairs = list(zip(questions, answers, contexts, answer_urls))
         random.shuffle(qa_pairs)
-        q_ids, questions, answers, titles = zip(*qa_pairs)
+        questions, answers, contexts, answer_urls= zip(*qa_pairs)
         logger.info(f'Shuffling QA pairs')
 
     if args.draft:
-        q_ids = np.array(q_ids)[:draft_num_examples].tolist()
         questions = np.array(questions)[:draft_num_examples].tolist()
         answers = np.array(answers)[:draft_num_examples].tolist()
-        titles = np.array(titles)[:draft_num_examples].tolist()
-
+        contexts = np.array(contexts)[:draft_num_examples].tolist()
+        answer_urls = np.array(answer_urls)[:draft_num_examples].tolist()
     if args.truecase:
         try:
             global truecase
@@ -156,6 +168,5 @@ def load_qa_pairs(data_path, args, q_idx=None, draft_num_examples=100, shuffle=F
             print(e)
 
     logger.info(f'Loading {len(questions)} questions from {data_path}')
-    logger.info(f'Sample Q ({q_ids[0]}): {questions[0]}, A: {answers[0]}, Title: {titles[0]}')
-    return q_ids, questions, answers, titles
+    return questions, answers, contexts, answer_urls, qids
 
